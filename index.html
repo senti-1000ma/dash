@@ -5,15 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>실시간 암호화폐 가격</title>
     <style>
+        /* --- Light Mode --- */
         body {
             font-family: 'Arial', sans-serif;
             background-color: #f4f4f4;
             color: #333;
             display: flex;
-            justify-content: center;
+            flex-direction: column; /* Header and prices stacked */
+            justify-content: flex-start; /* Align content to the top */
             align-items: center;
             min-height: 100vh;
             margin: 0;
+            padding-top: 20px; /* Add some space at the top */
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .dashboard-container {
@@ -21,9 +25,9 @@
             padding: 30px;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            width: 80%;
-            max-width: 600px;
+            width: 90%; /* Responsive width */
+            max-width: 800px; /* Max width for larger screens */
+            margin-bottom: 20px; /* Space below the container */
         }
 
         h1 {
@@ -31,89 +35,198 @@
             margin-bottom: 20px;
         }
 
+        .theme-toggle {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background-color 0.3s, color 0.3s;
+            font-size: 0.9em;
+        }
+        .theme-toggle:hover {
+            background-color: #e0e0e0;
+        }
+
         .crypto-prices {
-            display: flex;
-            justify-content: space-around;
+            display: grid; /* Use grid for a responsive layout of multiple items */
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); /* Columns adjust based on available width */
             gap: 20px;
-            flex-wrap: wrap;
+            width: 100%;
         }
 
         .crypto-item {
             background-color: #e9e9e9;
             padding: 20px;
             border-radius: 5px;
-            flex: 1;
-            min-width: 150px;
+            text-align: center;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center content vertically */
+            align-items: center; /* Center content horizontally */
         }
 
         .crypto-item h2 {
             margin-top: 0;
             color: #007bff;
-            font-size: 1.2em;
+            font-size: 1.1em;
+            margin-bottom: 10px;
         }
 
         .crypto-item p {
-            font-size: 1.8em;
+            font-size: 1.6em; /* Font size adjusted for more items */
             font-weight: bold;
             color: #333;
             margin-bottom: 0;
+            word-break: break-word; /* Prevents long numbers from breaking layout */
+        }
+
+        /* --- Dark Mode --- */
+        body.dark-mode {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .dashboard-container {
+            background-color: #1e1e1e;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        body.dark-mode h1 {
+            color: #bbbbbb;
+        }
+
+        body.dark-mode .theme-toggle {
+            background-color: #333;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        body.dark-mode .theme-toggle:hover {
+            background-color: #444;
+        }
+
+        body.dark-mode .crypto-item {
+            background-color: #2a2a2a;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+        }
+
+        body.dark-mode .crypto-item h2 {
+            color: #64b5f6; /* Lighter blue for dark mode */
+        }
+
+        body.dark-mode .crypto-item p {
+            color: #ffffff;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                width: 95%;
+                padding: 20px;
+            }
+            .crypto-prices {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+            .crypto-item {
+                padding: 15px;
+            }
+            .crypto-item p {
+                font-size: 1.4em;
+            }
         }
     </style>
 </head>
 <body>
+    <button class="theme-toggle" id="theme-toggle">다크 모드</button>
     <div class="dashboard-container">
         <h1>실시간 암호화폐 가격</h1>
-        <div class="crypto-prices">
-            <div class="crypto-item">
-                <h2>비트코인 (BTC)</h2>
-                <p id="bitcoin-price">로딩 중...</p>
-            </div>
-            <div class="crypto-item">
-                <h2>이더리움 (ETH)</h2>
-                <p id="ethereum-price">로딩 중...</p>
-            </div>
+        <div class="crypto-prices" id="crypto-prices-grid">
+            <!-- Crypto items will be dynamically added here -->
         </div>
     </div>
+
     <script>
         const COINGECKO_API_URL = 'https://api.coingecko.com/api/v3/simple/price';
-        const COINS = 'bitcoin,ethereum'; // 비트코인과 이더리움 ID
-        const CURRENCY = 'usd'; // 가격 표시 통화 (미국 달러)
-        const REFRESH_INTERVAL = 60000; // 1분 (60,000 밀리초)
+        // Popular cryptocurrencies: Bitcoin, Ethereum, Ripple, Litecoin, Cardano, Polkadot, Solana, Dogecoin
+        const COINS_DATA = {
+            'bitcoin': { name: '비트코인 (BTC)', id: 'bitcoin' },
+            'ethereum': { name: '이더리움 (ETH)', id: 'ethereum' },
+            'ripple': { name: '리플 (XRP)', id: 'ripple' },
+            'litecoin': { name: '라이트코인 (LTC)', id: 'litecoin' },
+            'cardano': { name: '카르다노 (ADA)', id: 'cardano' },
+            'polkadot': { name: '폴카닷 (DOT)', id: 'polkadot' },
+            'solana': { name: '솔라나 (SOL)', id: 'solana' },
+            'dogecoin': { name: '도지코인 (DOGE)', id: 'dogecoin' }
+        };
+        const CURRENCY = 'usd'; // Price displayed in USD
+        const REFRESH_INTERVAL = 60000; // Refresh every 1 minute (60,000 milliseconds)
+        const THEME_STORAGE_KEY = 'cryptoDashboardTheme';
+
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const cryptoPricesGrid = document.getElementById('crypto-prices-grid');
+        const bodyElement = document.body;
+
+        // Function to apply theme
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                bodyElement.classList.add('dark-mode');
+                themeToggleBtn.textContent = '라이트 모드';
+                localStorage.setItem(THEME_STORAGE_KEY, 'dark');
+            } else {
+                bodyElement.classList.remove('dark-mode');
+                themeToggleBtn.textContent = '다크 모드';
+                localStorage.setItem(THEME_STORAGE_KEY, 'light');
+            }
+        }
+
+        // Event listener for theme toggle button
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = bodyElement.classList.contains('dark-mode') ? 'dark' : 'light';
+            applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+        });
+
+        // Load theme from localStorage on page load
+        const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'light'; // Default to light
+        applyTheme(savedTheme);
 
         async function fetchCryptoPrices() {
+            const coinIds = Object.values(COINS_DATA).map(coin => coin.id).join(',');
+
             try {
-                const response = await fetch(`${COINGECKO_API_URL}?ids=${COINS}&vs_currencies=${CURRENCY}`);
+                const response = await fetch(`${COINGECKO_API_URL}?ids=${coinIds}&vs_currencies=${CURRENCY}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
 
-                const bitcoinPriceElement = document.getElementById('bitcoin-price');
-                const ethereumPriceElement = document.getElementById('ethereum-price');
+                cryptoPricesGrid.innerHTML = ''; // Clear previous content
 
-                // 가격 정보 업데이트
-                if (data.bitcoin && data.bitcoin.usd !== undefined) {
-                    bitcoinPriceElement.textContent = `$${data.bitcoin.usd.toLocaleString()}`;
-                } else {
-                    bitcoinPriceElement.textContent = '정보 없음';
-                }
+                Object.values(COINS_DATA).forEach(coin => {
+                    const priceElement = document.createElement('div');
+                    priceElement.classList.add('crypto-item');
 
-                if (data.ethereum && data.ethereum.usd !== undefined) {
-                    ethereumPriceElement.textContent = `$${data.ethereum.usd.toLocaleString()}`;
-                } else {
-                    ethereumPriceElement.textContent = '정보 없음';
-                }
+                    const price = data[coin.id] && data[coin.id][CURRENCY] !== undefined
+                        ? `$${data[coin.id][CURRENCY].toLocaleString()}`
+                        : '정보 없음';
+
+                    priceElement.innerHTML = `
+                        <h2>${coin.name}</h2>
+                        <p>${price}</p>
+                    `;
+                    cryptoPricesGrid.appendChild(priceElement);
+                });
 
             } catch (error) {
                 console.error("Failed to fetch crypto prices:", error);
-                document.getElementById('bitcoin-price').textContent = '오류';
-                document.getElementById('ethereum-price').textContent = '오류';
+                // Display error message for all coins if fetching fails
+                cryptoPricesGrid.innerHTML = '<div class="crypto-item" style="width:100%;"><p style="font-size:1.2em;">가격 정보를 불러오는 데 실패했습니다.</p></div>';
             }
         }
 
-        // 페이지 로드 시 즉시 가격 가져오기
+        // Initial fetch when the page loads
         fetchCryptoPrices();
-        // 설정된 간격으로 가격 새로고침
+        // Set interval to refresh prices
         setInterval(fetchCryptoPrices, REFRESH_INTERVAL);
     </script>
 </body>
