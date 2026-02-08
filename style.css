@@ -1,0 +1,39 @@
+body {
+    font-family: sans-serif;
+    background-color: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+}
+.container {
+    max-width: 960px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+h1, h2 {
+    color: #333;
+}
+#crypto-prices, #my-activity {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+#crypto-prices h3 {
+    margin: 5px 0;
+    color: #007bff; /* Example color for crypto */
+}
+#activity-log {
+    background-color: #e9ecef;
+    padding: 10px;
+    border-radius: 4px;
+    white-space: pre-wrap; /* Ensures whitespace is preserved */
+    word-wrap: break-word; /* Breaks long words */
+}
+small {
+    color: #666;
+    font-style: italic;
+}
