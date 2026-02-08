@@ -1,0 +1,39 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main # main 브랜치에 푸시될 때 배포합니다.
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write # Pages에 배포하기 위해 OIDC 토큰이 필요합니다.
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }} # 배포된 페이지의 URL을 가져옵니다.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # 저장소 코드를 가져옵니다.
+
+      # 만약 프로젝트에 Node.js 빌드 단계가 필요하다면 여기에 추가합니다.
+      # 현재 대시보드는 정적 파일이므로 별도의 빌드 단계는 없습니다.
+      # - name: Set up Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: '20'
+
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.' # 현재 디렉토리(index.html, script.js, style.css 포함)를 업로드합니다.
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        # actions/deploy-pages@v4 액션은 actions/upload-pages-artifact@v3에서 업로드된 아티팩트를 자동으로 배포합니다.
